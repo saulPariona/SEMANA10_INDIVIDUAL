@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Productos - Semana 10</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; }
+      form { display: grid; gap: 10px; max-width: 420px; }
+      input, textarea, button { font: inherit; padding: 8px; }
+      button { cursor: pointer; }
+      table { border-collapse: collapse; margin-top: 25px; width: 100%; }
+      th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+      #mensaje { margin-top: 15px; font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>Gestión de productos</h1>
+    <p>Este formulario envía datos a la API y la API los guarda en MySQL.</p>
+
+    <form id="productoForm">
+      <label>
+        Nombre
+        <input name="nombre" required minlength="2" />
+      </label>
+      <label>
+        Descripción
+        <textarea name="descripcion"></textarea>
+      </label>
+      <label>
+        Precio
+        <input name="precio" type="number" min="0" step="0.01" required />
+      </label>
+      <label>
+        Stock
+        <input name="stock" type="number" min="0" step="1" required />
+      </label>
+      <button type="submit">Guardar producto</button>
+    </form>
+
+    <p id="mensaje"></p>
+
+    <h2>Productos devueltos por la base de datos</h2>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr>
+      </thead>
+      <tbody id="productos"></tbody>
+    </table>
+
+    <script>
+      const form = document.querySelector('#productoForm');
+      const mensaje = document.querySelector('#mensaje');
+      const tabla = document.querySelector('#productos');
+
+      async function cargarProductos() {
+        const response = await fetch('/api/productos');
+        const productos = await response.json();
+        tabla.innerHTML = productos.map((producto) => `
+          <tr>
+            <td>${producto.id}</td>
+            <td>${producto.nombre}</td>
+            <td>S/ ${producto.precio}</td>
+            <td>${producto.stock}</td>
+          </tr>
+        `).join('');
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const datos = Object.fromEntries(new FormData(form));
+        datos.precio = Number(datos.precio);
+        datos.stock = Number(datos.stock);
+
+        const response = await fetch('/api/productos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
+        const resultado = await response.json();
+
+        if (!response.ok) {
+          mensaje.textContent = `Error ${response.status}: ${resultado.error}`;
+          return;
+        }
+
+        mensaje.textContent = `Producto guardado correctamente con ID ${resultado.id}`;
+        form.reset();
+        await cargarProductos();
+      });
+
+      cargarProductos().catch(() => {
+        mensaje.textContent = 'No se pudieron cargar los productos.';
+      });
+    </script>
+  </body>
+</html>
